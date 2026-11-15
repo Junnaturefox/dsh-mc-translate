@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "Minecraft 模组汉化",
+    "description": "把模组的 en_us.json 翻成简体中文并打包成可直接启用的资源包；内置 CFPA 与 i18n-Dict 术语索引，校验占位符与格式码，并做一遍通顺度校对。",
+    "detail": "docs/DETAIL.md"
+  }
+}

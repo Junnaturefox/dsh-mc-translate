@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "Minecraft mod translation",
+    "description": "Translates a Minecraft mod's en_us.json into Simplified Chinese and packages it as a drop-in resource pack, with a bundled CFPA and i18n-dict terminology index, placeholder and format-code validation, and a fluency pass.",
+    "detail": "docs/DETAIL.md"
+  }
+}

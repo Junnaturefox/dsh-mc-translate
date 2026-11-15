@@ -1,0 +1,19 @@
+# 术语库索引：可重建，48 MB 二进制，不入库
+skills/mc-mod-translate/glossary/index/
+
+# i18n-Dict 词典：20 MB，来自上游 release，不随仓库分发
+skills/mc-mod-translate/glossary/raw/i18n-dict-extender/
+
+# 自测产生的临时工作区
+skills/mc-mod-translate/scripts/.selftest/
+
+# 翻译工作目录
+.mct/
+
+# 系统与编辑器
+Thumbs.db
+desktop.ini
+.DS_Store
+*.swp
+.vscode/
+.idea/

@@ -1,0 +1,3 @@
+- insert:
+    - id: mc-translate-plugin
+      name: '@local/dsh-mc-translate'

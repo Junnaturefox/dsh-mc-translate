@@ -1,0 +1,23 @@
+{
+  "name": "@local/dsh-mc-translate",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Minecraft mod translation workflow as one plugin: the mc-mod-translate skill, its toolchain, and the bundled terminology index.",
+  "exports": {
+    ".": "./index.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "docs",
+    "icon.svg",
+    "skills"
+  ],
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" }
+  }
+}
