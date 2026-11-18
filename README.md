@@ -39,16 +39,26 @@ python skills/mc-mod-translate/scripts/mct.py pack     .mct/somemod
 
 | 命令 | 作用 |
 |---|---|
-| `probe` | 读模组身份、语言文件清单、是否 MCreator 生成、有无嵌套 jar |
-| `extract` / `merge` | 建工作目录；多模块命名空间合并 |
+| `probe` | 读模组身份、**前置依赖**（必需/可选）、是否出现其他模组的命名空间、MCreator 标记、有无嵌套 jar |
+| `extract` / `merge` | 建工作目录；`--namespace` 排除 JarJar 内嵌的第三方库；`merge` 合并多模块命名空间 |
 | `nominal` | 译前名词盘点：高频专名、大写短语、重复条目 |
-| `keys` | 列出待译条目（`--cluster` 按概念簇、`--simple`/`--complex` 按难度） |
+| `keys` | 列出待译条目（`--cluster` 按概念簇、`--simple`/`--complex` 按难度、`--min-chars` 只列长句） |
 | `apply` | 合并译文；`--by-en` 按英文原文一次铺到所有同英文的键 |
 | `fmt` | 按源文件风格重排 |
 | `audit` | 复查旧译是否整体错位、是否与术语库冲突 |
 | `check` | 全套校验，有错误退出码非零 |
 | `pack` | 产出资源包 |
 | `glossary` | 术语库 build / stats / lookup / search / qa |
+
+## 术语从哪里来
+
+翻译的准确度主要不取决于措辞，而取决于**从哪儿取词**。工具把这件事做成了机械检查：
+
+- `probe` 会打出 **前置依赖（必需）** 和 **可选联动**。只要列了联动，就该先去要对方的 jar 或汉化包。
+- 语言文件里若混着**别的模组的命名空间**（例如 `bits_n_tracks` 里出现 `message.bits_n_bobs.*`），`probe` 会单独标出来——这些条目描述的是联动内容，措辞必须跟着对方走。
+- **可选联动同样会定义核心术语**：`contraption-lights` 的 `Sub-level` 来自可选的 `sable`，自造「子层级」就与生态里的「子世界」脱节了。
+
+所以自造任何概念名之前，先确认相关模组有没有现成中文（含 `resourcepacks/` 下的社区汉化包），查不到才自造。
 
 ## 目录结构
 

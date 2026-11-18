@@ -200,7 +200,7 @@ def main():
     check("同英文译法一致", zh["item.d.a"] == zh["item.d.b"] == "相同", str(zh))
 
     (RUN / "bad2.json").write_text(
-        json.dumps({"Same": "已储存64FE", "OK": "这是一个非常长的中文按钮文本用来测试"},
+        json.dumps({"Same": "已储存FE电量", "OK": "这是一个非常长的中文按钮文本用来测试"},
                    ensure_ascii=False), encoding="utf-8")
     run("apply", str(RUN / "w-dup"), str(RUN / "bad2.json"), "--by-en")
     rc, out, err = run("check", str(RUN / "w-dup"))

@@ -515,6 +515,13 @@ def read_jar_entry(jar_path: Path, outer: str | None, inner: str) -> bytes:
 # ---------------------------------------------------------------- 模组元数据
 
 
+# 这些是加载器/平台 id，不算「前置模组」
+LOADER_DEP_IDS = {
+    "minecraft", "neoforge", "forge", "fabric", "fabricloader", "quilt_loader",
+    "quilted_fabric_api", "java", "cloth_config", "architectury",
+}
+
+
 def parse_mod_metadata(jar_path: Path) -> dict:
     meta = {
         "id": None,
@@ -526,6 +533,7 @@ def parse_mod_metadata(jar_path: Path) -> dict:
         "description": "",
         "homepage": "",
         "source": "",
+        "deps": [],
     }
     import tomllib
 
@@ -556,6 +564,8 @@ def parse_mod_metadata(jar_path: Path) -> dict:
                 dep = d.get("depends", {})
                 if isinstance(dep, dict):
                     meta["mc"] = str(dep.get("minecraft", "")) or None
+                    for mod_id, rng in dep.items():
+                        meta["deps"].append({"id": mod_id, "type": "required", "range": str(rng)})
             except Exception as e:
                 meta["error"] = f"fabric.mod.json 解析失败: {e}"
 
@@ -574,8 +584,17 @@ def parse_mod_metadata(jar_path: Path) -> dict:
                     deps = d.get("dependencies") or {}
                     for _, lst in (deps.items() if isinstance(deps, dict) else []):
                         for dep in lst if isinstance(lst, list) else []:
-                            if str(dep.get("modId", "")).lower() == "minecraft":
+                            dep_id = str(dep.get("modId", ""))
+                            if dep_id.lower() == "minecraft":
                                 meta["mc"] = meta["mc"] or dep.get("versionRange")
+                            if dep_id:
+                                meta["deps"].append(
+                                    {
+                                        "id": dep_id,
+                                        "type": str(dep.get("type", "required")),
+                                        "range": dep.get("versionRange"),
+                                    }
+                                )
                 except Exception as e:
                     meta["error"] = f"{toml_name} 解析失败: {e}"
                 break
@@ -669,7 +688,26 @@ def cmd_probe(args) -> int:
         "mod": meta,
         "locales": {k: len(v) for k, v in sorted(by_locale.items())},
         "lang_files": langs,
+        "foreign_namespaces": {},
     }
+    # 语言文件里若出现别的模组 id（如 bits_n_tracks 里混着 message.bits_n_bobs.*），
+    # 说明这些条目描述的是联动内容，术语必须以那个模组的官方译名为准。
+    dep_ids = {d["id"].lower() for d in meta.get("deps", [])} - LOADER_DEP_IDS
+    hits: dict[str, list[str]] = {}
+    if dep_ids:
+        for t in langs:
+            if t["locale"] != args.locale:
+                continue
+            try:
+                text, _enc = decode_bytes(read_jar_entry(jar, t["outer_jar"], t["inner_path"]))
+                data, _ = load_json_pairs(text)
+            except Exception:
+                continue
+            for k in data:
+                for seg in k.split("."):
+                    if seg.lower() in dep_ids:
+                        hits.setdefault(seg.lower(), []).append(k)
+    out["foreign_namespaces"] = {ns: len(ks) for ns, ks in hits.items()}
     if args.json:
         print(json.dumps(out, ensure_ascii=False, indent=2))
         return 0
@@ -680,6 +718,25 @@ def cmd_probe(args) -> int:
         print("      generator=MCreator（语言文件键序随机，extract 会自动排序）")
     if meta["nested_jars"]:
         print(f"      nested jars: {len(meta['nested_jars'])}")
+    dep_list = [d for d in meta.get("deps", []) if d["id"].lower() not in LOADER_DEP_IDS]
+    required = [d for d in dep_list if d.get("type") == "required"]
+    optional = [d for d in dep_list if d.get("type") == "optional"]
+    if required:
+        print("前置依赖（必需，需先取得这些模组的 jar 对齐术语）:")
+        for d in required:
+            print(f"      {d['id']}  {d.get('range') or ''}")
+    if optional:
+        names = ", ".join(d["id"] for d in optional[:8])
+        more = "…" if len(optional) > 8 else ""
+        print(f"      可选联动 {len(optional)} 个: {names}{more}")
+    if dep_list:
+        print("      提示：可选联动也会定义核心术语，自造名词前先确认这些模组有无中文本地化")
+    if hits:
+        print("⚠ 语言文件里出现了其他模组的命名空间（这些条目属于联动内容）:")
+        for ns, ks in sorted(hits.items(), key=lambda kv: -len(kv[1])):
+            print(f"      {ns}: {len(ks)} 条，例如 {ks[0]}")
+    if required:
+        eprint("[warn] 有必需前置模组：翻译前先向用户索取本体 jar，用其自带 zh_cn 作为术语基准")
     if meta.get("has_signature"):
         print("      ⚠ 该 jar 带签名，重打包会破坏签名")
     print("语言文件:")
@@ -721,6 +778,19 @@ def cmd_extract(args) -> int:
         pick = "en_us" if "en_us" in avail else avail[0]
         sources = [t for t in all_langs if t["locale"] == pick]
         eprint(f"[warn] 未找到 {args.locale}，回退使用 {pick}")
+
+    # JarJar 内嵌的第三方库（ctm、flywheel 之类）不该翻译：它们有自己的译名，
+    # 而且我们在资源包里给空译文会盖掉它们的英文回退。
+    allowed_ns = {
+        x.strip().lower() for x in (getattr(args, "namespace", None) or "").split(",") if x.strip()
+    }
+    if allowed_ns:
+        skipped = sorted({t["namespace"] for t in sources if t["namespace"].lower() not in allowed_ns})
+        sources = [t for t in sources if t["namespace"].lower() in allowed_ns]
+        if not sources:
+            raise Fail(f"--namespace 过滤后没有剩余内容，jar 内命名空间: {', '.join(skipped) or '无'}")
+        if skipped:
+            eprint(f"[info] 已按 --namespace 排除: {', '.join(skipped)}")
 
     work.mkdir(parents=True, exist_ok=True)
     (work / "source").mkdir(exist_ok=True)
@@ -2001,6 +2071,11 @@ def build_parser() -> argparse.ArgumentParser:
     se.add_argument("--locale", default="en_us", help="源语言，默认 en_us")
     se.add_argument("--target-locale", default="zh_cn")
     se.add_argument("--locale-fallback", action="store_true", help="源语言缺失时自动回退")
+    se.add_argument(
+        "--namespace",
+        default=None,
+        help="只提取这些命名空间（逗号分隔）。用于排除 JarJar 内嵌的第三方库，如 ctm、flywheel",
+    )
     se.add_argument(
         "--sort",
         dest="sort",
