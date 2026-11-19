@@ -1554,6 +1554,18 @@ def cmd_check(args) -> int:
                         "zh": zh,
                     }
                 )
+            # 原文没有百分号而译文里出现：多半是把 % 当成了占位符（% 单独出现不构成合法占位符，
+            # 占位符比对查不出来）。真要是百分比文案，原文通常也带 %。
+            if "%" in zh and "%" not in en:
+                warns.append(
+                    {
+                        "type": "stray-percent",
+                        "key": k,
+                        "msg": "原文没有 % 号，译文里出现了 %",
+                        "en": en,
+                        "zh": zh,
+                    }
+                )
             if args.term_check and lookup:
                 for hit in find_term_matches(en, lookup):
                     variants = hit["zh"]
@@ -1958,6 +1970,21 @@ def glossary_build(home: Path, args) -> int:
             if not r.get("en") or not r.get("zh"):
                 continue
             rows.append((r["en"], r["zh"], r.get("reason", ""), r.get("comment", ""), "", "cfpa:terms"))
+    # 上游另按类别拆了 terms-<cat>.tsv（biome / color / effect / enchantment / mob / tech），
+    # 不加 scope：这些术语在任意键里都成立。terms-version.tsv 是「旧版本译名，勿按最新版校验」
+    # 的反向清单，与 scoped 机制语义不同，暂不导入。
+    terms_dir = cfpa / "Vanilla" / "terms"
+    if terms_dir.exists():
+        for p in sorted(terms_dir.glob("terms-*.tsv")):
+            if p.name in ("terms-v1.tsv", "terms-version.tsv"):
+                continue
+            cat = p.stem[len("terms-") :]
+            for r in _tsv_rows(p):
+                if not r.get("en") or not r.get("zh"):
+                    continue
+                rows.append(
+                    (r["en"], r["zh"], r.get("reason", ""), r.get("comment", ""), "", f"cfpa:terms:{cat}")
+                )
     special_dir = cfpa / "Vanilla" / "terms" / "special"
     if special_dir.exists():
         for p in sorted(special_dir.glob("terms-*.tsv")):

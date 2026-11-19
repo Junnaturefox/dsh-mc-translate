@@ -117,8 +117,21 @@ const remote = String(await fetch.server('https://raw.githubusercontent.com/CFPA
 |---|---|---|---|---|---|
 | 2026-11-15 | `e27df31f1d` | `dict-update-2026-11-13-1732` | 2755 | 405033 | 10 |
 | 2026-11-15（复查，无变化） | `e27df31f1d` | `dict-update-2026-11-13-1732` | 2755 | 405033 | 10 |
+| 2026-11-19 | `5e401f4da4` | `dict-update-2026-11-13-1732`（无更新） | 3033 | 405033 | 10 |
 
 下次更新时在表尾追加一行。
+
+### 2026-11-19 那次更新的特殊之处
+
+上游重构了术语目录，这次不是单纯「文件变长」：
+
+- 新增按类别拆分的 `Vanilla/terms/terms-<cat>.tsv`：`biome`(67) / `color`(16) / `effect`(40) / `enchantment`(43) / `mob`(105) / `tech`(107)，共 +378 条。
+  这些文件在 `Vanilla/terms/` 下而非 `special/`，**当初的 `glossary build` 只读 `terms-v1.tsv`**，已改成同时读取该目录下所有 `terms-*.tsv`（排除 `terms-v1` 与 `terms-version`），**不加 scope**——这些术语在任意键里都成立。
+- `terms-v1.tsv` 体积增大但条数减少（735 → 694），译文合并进了 reason/comment 列。
+- `special/` 下的 pottery(71→25)、trim(37→19) 条数大跌，内容迁移到了类别文件或 terms-v1。
+- **上游删除了 `qa-rules.tsv` 与 `special/terms-banner.tsv`**。本地两个文件**保留**：前者是工具自己消费的 QA 规则（删了 `qa` 表就空），后者是 44 条 scoped 纹样术语（无害）。要严格跟随上游时再删。
+- `terms-version.tsv`（33 行，带 `versions` 列）是「旧版本译名，勿按最新版术语校验」的**反向清单**，与「key 含某 token 才生效」的 scoped 机制语义不同，**未导入**。要用它得先给 `check` 加版本感知。
+- `Vanilla/.latest` = `26.3`，已一并落盘备查。
 
 ---
 
