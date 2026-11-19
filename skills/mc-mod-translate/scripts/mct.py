@@ -731,6 +731,8 @@ def cmd_probe(args) -> int:
         print(f"      可选联动 {len(optional)} 个: {names}{more}")
     if dep_list:
         print("      提示：可选联动也会定义核心术语，自造名词前先确认这些模组有无中文本地化")
+        print("            仅当译名指向同一对象时才对齐（键在对方命名空间 / 明写联动 / 引用对方概念）；")
+        print("            同名词不同物各按本模组语境处理，不因别处译过就跟着译")
     if hits:
         print("⚠ 语言文件里出现了其他模组的命名空间（这些条目属于联动内容）:")
         for ns, ks in sorted(hits.items(), key=lambda kv: -len(kv[1])):
