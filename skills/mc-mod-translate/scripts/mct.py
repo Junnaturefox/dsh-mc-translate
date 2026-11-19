@@ -1761,7 +1761,15 @@ def cmd_pack(args) -> int:
         produced.append(("jar", out_path))
 
     if args.resourcepack:
-        fmt = args.pack_format or guess_pack_format(man["mod"].get("mc"))
+        mc_declared = man["mod"].get("mc")
+        fmt = args.pack_format or guess_pack_format(mc_declared)
+        if not args.pack_format and not _parse_ver(mc_declared):
+            # 模组没声明 MC 版本时回退值可能和实际游戏版本不符（例如 1.21.1 需要 34，
+            # 回退是 15），游戏会提示资源包不兼容。宁可吵闹一次，也别静默出错。
+            eprint(
+                f"[warn] 模组未声明 MC 版本，pack_format 回退为 {fmt}；"
+                f"若目标版本不是 1.20.x，请用 --pack-format 指定（1.21.1=34）"
+            )
         rp_name = args.resourcepack if args.resourcepack != "auto" else f"{man['jar']['stem']}-zh_cn-resourcepack"
         if not rp_name.endswith(".zip"):
             rp_name += ".zip"
@@ -1786,7 +1794,8 @@ def cmd_pack(args) -> int:
         print(json.dumps({"produced": [{"kind": k, "path": str(p)} for k, p in produced]}, ensure_ascii=False, indent=2))
     else:
         for kind, p in produced:
-            print(f"✓ {kind}: {p}  ({p.stat().st_size/1024:.0f} KB)")
+            extra = f"  pack_format={fmt}" if kind == "resourcepack" else ""
+            print(f"✓ {kind}: {p}  ({p.stat().st_size/1024:.0f} KB){extra}")
     return 0
 
 
