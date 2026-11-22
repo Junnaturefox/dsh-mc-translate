@@ -172,6 +172,7 @@ def dump_style(data: dict, style: dict) -> str:
 
 # Java Formatter 说明符：%s %d %1$s %-10s %.2f %%
 RE_JAVA_FMT = re.compile(r"%(?:\d+\$)?[-#+0,(]*\d*(?:\.\d+)?[tT]?[a-zA-Z%]")
+RE_FMT_INDEX = re.compile(r"%(\d+)\$")
 # 花括号占位符：{0} {player} 等（软占位符）
 RE_CURLY = re.compile(r"\{[A-Za-z0-9_.\- ]{0,24}\}")
 # 段落样式颜色/格式码
@@ -235,11 +236,17 @@ def cjk_space_hits(text) -> list[str]:
 
 
 def extract_tokens(text: str) -> list[str]:
-    """提取一处文本里所有必须原样保留的符号序列，排序后返回。"""
+    """提取一处文本里所有必须原样保留的符号序列，排序后返回。
+
+    位置参数（%1$s / %2$d）归一成 %s / %d 再比对：Java 的 format 允许位置参数与
+    普通参数混用，中文语序需要调换两个参数的位置时只能写 %1$s、%2$s。参数个数
+    （由归一后的多重集体现）才是真正约束，写法不是。
+    """
     if not isinstance(text, str):
         return []
     out: list[str] = []
-    out.extend(m.group(0) for m in RE_JAVA_FMT.finditer(text))
+    for m in RE_JAVA_FMT.finditer(text):
+        out.append(RE_FMT_INDEX.sub("%", m.group(0)))
     out.extend(m.group(0) for m in RE_SECTION.finditer(text))
     out.extend(m.group(0) for m in RE_ESCAPE.finditer(text))
     # 花括号：排除被 Java 格式串包住的情况已由上面的匹配覆盖
@@ -252,9 +259,22 @@ def extract_tokens(text: str) -> list[str]:
     return out
 
 
+def positional_indices(text: str) -> list[int]:
+    """取出文本里显式写了序号的占位符序号（%1$s → 1）。"""
+    if not isinstance(text, str):
+        return []
+    return [int(m.group(1)) for m in re.finditer(r"%(\d+)\$", text)]
+
+
 def fmt_token_diff(src: str, dst: str) -> list[str]:
     a, b = extract_tokens(src), extract_tokens(dst)
     if a == b:
+        # 归一后一致，但译文可能用位置参数漏掉了某个序号
+        # （%1$s 写两遍顶替 %2$s 是常见笔误，多重集看不出来）
+        idx = positional_indices(dst)
+        n = sum(1 for t in a if t.startswith("%") and t != "%%")
+        if idx and n and sorted(set(idx)) != list(range(1, max(n, max(idx)) + 1)):
+            return [f"位置参数序号不连续：{sorted(set(idx))}，原文共有 {n} 个占位符"]
         return []
     ca, cb = Counter(a), Counter(b)
     problems = []
