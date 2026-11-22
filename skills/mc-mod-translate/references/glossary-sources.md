@@ -118,8 +118,31 @@ const remote = String(await fetch.server('https://raw.githubusercontent.com/CFPA
 | 2026-11-15 | `e27df31f1d` | `dict-update-2026-11-13-1732` | 2755 | 405033 | 10 |
 | 2026-11-15（复查，无变化） | `e27df31f1d` | `dict-update-2026-11-13-1732` | 2755 | 405033 | 10 |
 | 2026-11-19 | `5e401f4da4` | `dict-update-2026-11-13-1732`（无更新） | 2989 | 405033 | 10 |
+| 2026-11-22 | `941445dd65` | `dict-update-2026-11-20-1822` | 2989 | 405032 | 10 |
 
 下次更新时在表尾追加一行。
+
+### 2026-11-22 那次更新：只有注释在变
+
+上游 commit 是「扁平化 STYLE 规则块并前置全局体例」，表现为 `special/*.tsv` 体积大跌：
+
+```
+terms-subtitles.tsv      8,524 -> 3,863 B
+terms-tropical_fish.tsv  3,393 ->   953 B
+terms-pottery.tsv        2,276 ->   726 B
+terms-trim.tsv           1,510 ->   422 B
+```
+
+**但行数一条没少**（134 / 36 / 26 / 20），少掉的全是每行 `comment` 列里冗长的「来源：xxx；xxx」说明，体例说明被提取到别处。所以 `term` 表条数不变（仍 2989），受影响的是 `comment` 列内容。
+
+实际变更：
+
+- `terms-v1.tsv`：695 行不变，6 行注释改写（Armor / Infested / Decorated Pot / Thunderstorm / Shipwreck 等）。
+- `terms-mob.tsv`、`terms-tech.tsv`：各 1 行注释改写（Slime、Armor 的属性/物品分工说明）。
+- `special/` 四个文件：数据行数与译文完全一致，仅去掉了注释列。
+- `Dict-Mini.json`：`dict-update-2026-11-13-1732` → `dict-update-2026-11-20-1822`，20,170,676 → 20,170,471 B（少 205 B），`memory` 因此从 405033 降到 405032。
+
+拉取注意：直连 `objects.githubusercontent.com` 反复 `ETIMEDOUT`，改用 `ego_download` 走浏览器通道一次成功（21 秒）。以后同步大文件优先走这条。
 
 ### 2026-11-19 那次更新的特殊之处
 
