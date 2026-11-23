@@ -43,6 +43,19 @@ Vanilla/diffs/26.2-26.3.terms.json
 
 用户要求对照新旧版本术语变动时再导入。
 
+### Vanilla/terms/STYLE.md（风格规范，仅归档）
+
+上游自 2026-11-21 起把「全局体例」从各分表注释里抽出，成为独立文件 `Vanilla/terms/STYLE.md`（19,591 B / 351 行）。
+
+- 本地落位：`raw/cfpa/Vanilla/terms/STYLE.md`
+- **索引构建器不读它**（Markdown，不是术语数据），归档只为写译文时翻查
+- 内容：全局体例（品牌专名、数字与计量单位、空格间距、标点符号、命令语法、界面表述）+ 14 个分类小节（基础方块物品、旗帜图案、陶片与盔甲纹饰、药水与药箭、地图、生物群系、实体属性、魔咒、音画作品、音效字幕、统计项、死亡消息、命令反馈、进度、游戏规则与设置、键盘按键）
+- 每节带 `<!-- @scope {...} -->` 注释标明适用 key 范围，与术语分表的 scoped 机制同源
+
+> ⚠ 该文件与 `mct.py check` 的 `cjk-space` 规则**存在冲突**：STYLE.md 全局体例写的是「常规中文与英文词、数字、占位符及标点之间**不加空格**」（例 `TNT爆炸已禁用`、`%1$s被%2$s射杀`），
+> 只在署名单位（`%1$s 著`、`%s fps`）、带前缀按键名（`AC 后退`）、组合键 `+` 两侧（`Alt + F4`）、斜杠进度（`%s / %s`）保留半角空格。
+> 是否据此放宽 `cjk-space` 待定，未擅自改动规则。
+
 ### VM-Chinese-translate-group/i18n-Dict-Extender
 
 - 仓库：<https://github.com/VM-Chinese-translate-group/i18n-Dict-Extender>
