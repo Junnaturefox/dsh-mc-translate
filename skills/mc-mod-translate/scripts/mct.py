@@ -271,10 +271,15 @@ def fmt_token_diff(src: str, dst: str) -> list[str]:
     if a == b:
         # 归一后一致，但译文可能用位置参数漏掉了某个序号
         # （%1$s 写两遍顶替 %2$s 是常见笔误，多重集看不出来）
+        #
+        # 只报「译文序号集合与原文不同」的情形：原文自己就写坏了
+        # （如 death.attack 某条把 %2$s 写了两遍、缺 %1$s）时，
+        # 译文照抄同一套序号才是对的，不该算译者的错。
         idx = positional_indices(dst)
         n = sum(1 for t in a if t.startswith("%") and t != "%%")
         if idx and n and sorted(set(idx)) != list(range(1, max(n, max(idx)) + 1)):
-            return [f"位置参数序号不连续：{sorted(set(idx))}，原文共有 {n} 个占位符"]
+            if sorted(set(idx)) != sorted(set(positional_indices(src))):
+                return [f"位置参数序号不连续：{sorted(set(idx))}，原文共有 {n} 个占位符"]
         return []
     ca, cb = Counter(a), Counter(b)
     problems = []
